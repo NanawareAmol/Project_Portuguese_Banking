@@ -1,0 +1,25 @@
+## Pre-Processing : 
+
+#1: Grab The Data
+#2: Separate the Data into Dependant and Independent Variables
+#3: Deal with Missing values (Impute/Drop) 
+#4: Deal with outliers (Impute/Drop)
+#5: Check Co-relation between data and multicollinearity
+#6: Encode Non-Numeric categorical Data
+#7: Check Class Imbalance, Rare Values, High Values, Extreme Values, Linear values and Outliers
+#8: Eliminate the Non Influencing factors (independent variables)
+#9: Feature Scale
+#10: Apply Dimensionality Reduction (if required)
+
+## Build and Run the Model
+
+#10: Divide the data into training and testing data
+#11: Build the Model. Check the Co-Efficient and the Intercepts
+#12: Run it on Training Set. Capture the accuracy/Error
+#13: Run The Model on Test Data. Capture Error and determine the performance of the model
+#14: Check Bias and variance
+#15: Run it on K-Fold Test. Re-Check Bias and Variance.
+
+## Tune The Model
+#16: Tune the Hyperparameters of the algorithm for satisfactory accuracy
+#17: Interpret the Results
