@@ -29,9 +29,29 @@
 
   ## Goal: Pre-processing
     Amol     - Python
-    Anurag   - 
+    Anurag   - SAS
     Bindu    - R
     Alex     - SAS
     Jyothi   - R
     Luke     - SAS
-    Nishant  - 
+    Nishant  - Python
+
+# Week3 meeting - 11/04/2020
+  ## MOM:
+    Discussed on the dataset, and difficulties faced while cleaning the data. Agreed on the next week goal, to do the task of completing pre-processing steps and fitting the model. 
+    Decided on working on each of the laguages separately in the team of 2 or 3 and after completiong we will be comparing the data accuracy using LDA and model accuracy using cross validation.
+  
+  ## Individual Activities:
+    Amol     - Data pre-processing and model fitting in Python
+    Nishant  - Data pre-processing and model fitting in Python
+    Anurag   - Data pre-processing and model fitting in SAS
+    Luke     - Data pre-processing and model fitting in SAS
+    Alex     - Data pre-processing and model fitting in SAS
+    Bindu    - Data pre-processing and model fitting in R
+    Jyothi   - Data pre-processing and model fitting in R
+  
+  
+  
+  
+  
+  
