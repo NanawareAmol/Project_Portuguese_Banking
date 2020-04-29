@@ -3,13 +3,13 @@
 #1: Grab The Data
 #2: Separate the Data into Dependant and Independent Variables
 #3: Deal with Missing values (Impute/Drop) 
-#4: Deal with outliers (Impute/Drop)
-#5: Check Co-relation between data and multicollinearity
-#6: Encode Non-Numeric categorical Data
-#7: Check Class Imbalance, Rare Values, High Values, Extreme Values, Linear values and Outliers
-#8: Eliminate the Non Influencing factors (independent variables)
-#9: Feature Scale
-#10: Apply Dimensionality Reduction (if required)
+
+#4: Check Co-relation between data and multicollinearity
+#5: Encode Non-Numeric categorical Data
+#6: Check Class Imbalance
+#7: Eliminate the Non Influencing factors (independent variables)
+#8: Feature Scale
+#9: Apply Dimensionality Reduction (if required)
 
 ## Build and Run the Model
 
