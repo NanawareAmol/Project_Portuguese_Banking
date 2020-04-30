@@ -3,7 +3,6 @@
 #1: Grab The Data
 #2: Separate the Data into Dependant and Independent Variables
 #3: Deal with Missing values (Impute/Drop) 
-
 #4: Check Co-relation between data and multicollinearity
 #5: Encode Non-Numeric categorical Data
 #6: Check Class Imbalance
