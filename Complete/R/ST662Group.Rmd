@@ -1,0 +1,362 @@
+---
+title: "Bindu & Jyothi's R code for SAS project"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+#knitr::opts_chunk$set(echo = TRUE)
+suppressMessages(library("dplyr"))
+suppressMessages(library("tibble"))
+# if SDMTools library is not installed already then you need to install it manually as it has been removed from the cran server
+# devtools::install_local("D:\\STUDY\\MAYNOOTH\\Subjects\\sem2\\ST662-Topics in data analytics\\SAS_Project\\code\\R\\SDMTools_1.1-221.2.tar.gz")
+suppressMessages(library(SDMTools))
+suppressMessages(library(caret))
+suppressMessages(library(naniar))
+suppressMessages(library(car))
+suppressMessages(library(ROCR))
+suppressMessages(library(readxl))
+suppressMessages(library(reshape))
+suppressMessages(library(leaps))
+suppressMessages(library(purrr))
+```
+
+```{r }
+# setwd("D:\STUDY\MAYNOOTH\Subjects\sem2\ST662-Topics in data analytics\SAS_Project\code\R")
+
+#Uncleaned Data
+bank_uc<-read.csv("bank-additional-full.csv",sep=';', header=TRUE)
+
+#Method 1: Imputed categorical
+i <- sapply(bank_uc, is.factor)
+#Replacing all the unknown values with NA. (Marking unknown values as missing)
+bank_uc[bank_uc=="unknown"] <- NA
+
+#Converting all columns to numeric values
+j <- sapply(bank_uc, is.factor)
+bank_uc[j] <- lapply(bank_uc[j], as.integer)
+#Starts the integer count from 1 so to make the count start from 0, using below step
+bank_uc[j]<-bank_uc[j]-1
+#Counting missing values
+colSums(is.na(bank_uc))
+# We can observer that default : 8597,education 1731, loan : 990, housing : 990 has most missing values.
+#job:330 martail:80
+
+#imputing value of education 
+bank_uc[where_na(bank_uc$education),4]<-median(na.omit(bank_uc$education))
+#imputing value for job
+  b<-bank_uc%>%
+  group_by(education)%>%
+  mutate("mean"=round(mean(na.omit(job))))
+bank_uc[where_na(bank_uc$job),2]<-b[where_na(bank_uc$job),22] 
+#convert to factor
+bank_uc[i] <- lapply(bank_uc[i], as.factor)
+#Removed default column
+bank_uc<-bank_uc[,-c(5)]
+
+#Cleaned dataset after removing default and converting everything to integer
+bank_c<-bank_uc
+
+# We ran the logistic regression with the cleaned data but R cannot run regression with ANY missing values, so either the missing values needs to be removed or imputed. Hence removing the rows with missing loan and housing values. for reference: the error we get is "Error in step(logit) : number of rows in use has changed: remove missing values?"
+bank_c<-na.omit(bank_c,"loan","housing")
+#write.csv(bank_c,"~/ST662/bank-additional-cleanedinR", row.names = FALSE)
+```
+
+```{r cars}
+#splitting data into test and training, 70:30
+set.seed(9)
+trainingindex <- sample(nrow(bank_c), 0.7*nrow(bank_c))
+bank_train <- bank_c[trainingindex,]
+bank_test <- bank_c[-trainingindex,]
+#Just checing ratio of split
+sum(bank_train$y==0)/sum(bank_train$y==1) 
+sum(bank_test$y==0)/sum(bank_test$y==1)
+# Equally divided y 0's 1's b/w training and testing
+
+```
+
+```{r}
+
+#logistic regression with all predictors 
+logit <- glm(data = bank_train, y ~.-duration-nr.employed-emp.var.rate ,family = "binomial")
+summary(logit)
+
+#Training data prediction confusion matrix
+ptrain_all <- predict(logit,bank_train)
+table(Actual=bank_train$y, predict=ptrain_all>0.5)
+accuracy(bank_train$y, ptrain_all)
+
+
+#Testing data prediction confusion matrix
+ptest_all <- predict(logit,bank_test)
+table(Actual=bank_test$y, predict=ptest_all>0.5)
+accuracy(bank_test$y, ptest_all)
+
+
+#backward selection loigistic regression model
+logit1 <- step(logit, direction = "backward",trace = 0)
+summary(logit1)
+
+#Best model 
+# #  y ~ age + job + contact + month + day_of_week + 
+##     campaign + pdays + poutcome + cons.price.idx + cons.conf.idx + 
+##     euribor3m, family = "binomial"
+
+#training the logit1 model on the train data
+bankpt <- predict(logit1,bank_train)
+table(Actual=bank_train$y, predict=bankpt>0.5)
+accuracy(bank_train$y, bankpt)
+
+#testing the logit1 model on the test data
+bankp <- predict(logit1,bank_test)
+table(Actual=bank_test$y, predict=bankp>0.5)
+accuracy(bank_test$y, bankp)
+
+# Accuracy ACC = (TP +TN)/(P+N)
+
+```
+
+```{r}
+#check the accuracy measures, comparing the accuracy of actual and predicted
+# Specificity: False Positive Rate
+# Sensitivity: True Positive Rate
+# creating a range of values to test for accuracy
+test=seq(0,1,by=0.05)
+
+# Initializing a 1*20 matrix of zeros to save values of accuracy
+acc_mat = matrix(0,1,20)
+```
+
+```{r}
+# computing accuracy for different threshold values from 0 to 1 step by 0.05
+for (i in 1:21){
+  matrix = confusion.matrix(bank_test$y,bankp,threshold=test[i])
+  acc_mat[i]=(matrix[1,1]+matrix[2,2])/nrow(bank_test)
+}
+# print and plot the accuracy vs cutoff threshold values
+print(c(accuracy= acc_mat, cutoff = test))
+plot(test,acc_mat,type="l",xlab="Threshold",ylab="Accuracy", main="Validation accuracy for different Threshold values",cex.main=0.9)
+```
+
+```{r}
+#Additional file of test data
+#Uncleaned Data
+b_uc<-read.csv("bank-additional.csv",sep=';', header=TRUE)
+i <- sapply(b_uc, is.factor)
+#Replacing all the unknown values with NA. (Marking unknown values as missing)
+b_uc[b_uc=="unknown"] <- NA
+
+#Converting all columns to numeric values
+j <- sapply(b_uc, is.factor)
+b_uc[j] <- lapply(b_uc[j], as.integer)
+#Starts the integer count from 1 so to make the count start from 0, using below step
+b_uc[j]<-b_uc[j]-1
+#Counting missing values
+colSums(is.na(b_uc))
+# We can observer that default : 8597,education 1731, loan : 990, housing : 990 has most missing values.
+#job:330 martail:80
+
+#imputing value of education 
+b_uc[where_na(b_uc$education),4]<-median(na.omit(b_uc$education))
+#imputing value for job
+b<-b_uc%>%
+  group_by(education)%>%
+  mutate("mean"=round(mean(na.omit(job))))
+b_uc[where_na(b_uc$job),2]<-b[where_na(b_uc$job),22] 
+#convert to factor
+b_uc[i] <- lapply(b_uc[i], as.factor)
+#Removed default column
+b_uc<-b_uc[,-c(5)]
+
+#Cleaned dataset after removing default and converting everything to integer
+b_c<-b_uc
+
+b_c<-na.omit(b_c,"loan","housing")
+
+bp <- predict(logit1,b_c)
+table(Actual=b_c$y, predict=bp>0.5)
+accuracy(b_c$y, bp)
+
+
+pred_f <- prediction(predictions=bp, labels=b_c$y)
+
+#PLOT ROC CURVE
+perf_f <- performance(pred_f, "tpr", "fpr")
+
+plot(perf_f,
+     main="ROC Curves",
+     xlab="False Positive Rate",
+     ylab="True Positive Rate",
+     col="darkblue",  lwd = 3)
+abline(0,1, lty = 300, col = "red",  lwd = 3)
+```
+
+```{r}
+
+#Method 2: Dummy Encoded
+bank_uc<-read.csv("bank-additional-full.csv",sep=';', header=TRUE)
+
+i <- sapply(bank_uc, is.factor)
+#Replacing all the unknown values with NA. (Marking unknown values as missing)
+bank_uc[bank_uc=="unknown"] <- NA
+
+#Cleaned dataset after removing default and converting everything to integer
+bank_dc<-bank_uc
+str(bank_dc)
+
+bank_dc<-na.omit(bank_dc,"loan","housing")
+#sum(bank_dc$y=="yes")
+#Listing numeric and non numeric-variables
+bank_n <- names(select_if(bank_dc, is.numeric))
+bank_ch <- names(select_if(bank_dc, negate(is.numeric)))
+bank_dc <- fastDummies::dummy_cols(bank_dc,select_columns = bank_ch,remove_selected_columns=TRUE,remove_first_dummy = TRUE)
+
+colnames(bank_dc)[54] <- "y"
+bank_dc <- bank_dc[,-c(21,24,31,32,34,36)]
+```
+
+```{r}
+#splitting data into test and training, 70:30
+set.seed(9)
+trainingindex <- sample(nrow(bank_dc), 0.7*nrow(bank_dc))
+bank_train <- bank_dc[trainingindex,]
+bank_test <- bank_dc[-trainingindex,]
+#Just checing ratio of split
+sum(bank_train$y==0)/sum(bank_train$y==1) 
+sum(bank_test$y==0)/sum(bank_test$y==1)
+
+```
+
+```{r}
+logit <- glm(data = bank_train, y ~.-duration,family = "binomial")
+summary(logit)
+
+
+#Training data prediction confusion matrix
+ptrain_all <- predict(logit,bank_train)
+table(Actual=bank_train$y, predict=ptrain_all>0.5)
+accuracy(bank_train$y, ptrain_all)
+
+
+ptest_all <- predict(logit,bank_test)
+table(Actual=bank_test$y, predict=ptest_all>0.5)
+
+accuracy(bank_test$y, ptest_all)
+
+
+logit1 <- step(logit,trace = 0)
+summary(logit1)
+```
+
+```{r}
+#training the logit1 model on the train data
+bankpt <- predict(logit1,bank_train)
+table(Actual=bank_train$y, predict=bankpt>0.5)
+accuracy(bank_train$y, bankpt)
+
+
+
+#testing the logit1 model on the test data
+bankp <- predict(logit1,bank_test)
+table(Actual=bank_test$y, predict=bankp>0.5)
+accuracy(bank_test$y, bankp)
+
+```
+
+```{r}
+test=seq(0,1,by=0.05)
+
+# Initializing a 1*20 matrix of zeros to save values of accuracy
+acc_mat = matrix(0,1,20)
+
+# computing accuracy for different threshold values from 0 to 1 step by 0.05
+for (i in 1:21){
+  matrix = confusion.matrix(bank_test$y,bankp,threshold=test[i])
+  acc_mat[i]=(matrix[1,1]+matrix[2,2])/nrow(bank_test)
+}
+# print and plot the accuracy vs cutoff threshold values
+print(c(accuracy= acc_mat, cutoff = test))
+
+plot(test,acc_mat,type="l",xlab="Threshold",ylab="Accuracy", main="Validation accuracy for different Threshold values",cex.main=0.9)
+pred <- prediction(predictions=bankp, labels=bank_test$y)
+#PLOT ROC CURVE
+perf <- performance(pred, "tpr", "fpr")
+
+plot(perf,
+     main="ROC Curves",
+     xlab="False Positive Rate",
+     ylab="True Positive Rate",
+     col="darkblue",  lwd = 3)
+abline(0,1, lty = 300, col = "red",  lwd = 3)
+```
+
+
+```{r}
+#Python Encoded Dummy data
+BankdroppedNullEncodedUpsampled <- read_excel("BankdroppedNullEncodedUpsampled.xlsx")
+set.seed(9)
+trainingindex <- sample(nrow(BankdroppedNullEncodedUpsampled), 0.7*nrow(BankdroppedNullEncodedUpsampled))
+bank_train <- BankdroppedNullEncodedUpsampled[trainingindex,]
+bank_test <- BankdroppedNullEncodedUpsampled[-trainingindex,]
+
+newl<-glm(y~.-...1,data=bank_train,family = "binomial")
+summary(newl)
+
+stepl<-step(newl,trace=0)
+summary(stepl)
+# 39606: AIC
+# glm(formula = y ~ age + housing + campaign + pdays + previous +
+#     emp.var.rate + cons.price.idx + cons.conf.idx + job_admin. +
+#     job_management + job_retired + `job_self-employed` + job_student +
+#     job_technician + education_basic.4y + education_basic.9y +
+#     education_illiterate + education_professional.course + contact_cellular +
+#     month_apr + month_aug + month_dec + month_jul + month_jun +
+#     month_mar + month_may + month_nov + month_oct + day_of_week_fri +
+#     day_of_week_mon + day_of_week_thu + day_of_week_tue + poutcome_failure
+
+#training the logit1 model on the train data
+pl <- predict(stepl,bank_train)
+table(Actual=bank_train$y, predict=pl>0.5)
+accuracy(bank_train$y, pl)
+#90.02% accuracy for training 
+
+#testing the logit1 model on the test data
+ptl <- predict(stepl,bank_test)
+table(Actual=bank_test$y, predict=ptl>0.5)
+accuracy(bank_test$y, ptl)
+#89.84% for testing
+
+# rl<-glm(y ~ age + housing + campaign + pdays + previous +
+#     emp.var.rate + cons.price.idx + cons.conf.idx + job_admin. +
+#     job_management + job_retired + `job_self-employed` + job_student +
+#     job_technician + education_basic.4y + education_basic.9y +
+#     education_illiterate + education_professional.course + contact_cellular +
+#     month_apr + month_aug + month_dec + month_jul + month_jun +
+#     month_mar + month_may + month_nov + month_oct + day_of_week_fri +
+#     day_of_week_mon + day_of_week_thu + day_of_week_tue + poutcome_failure
+
+# y ~ age + housing + campaign + pdays + previous +
+#  emp.var.rate + cons.price.idx + cons.conf.idx + job + education + month + day_of_week +poutcome
+
+pred_f <- prediction(predictions=ptl, labels=bank_test$y)
+
+#PLOT ROC CURVE
+perf_f <- performance(pred_f, "tpr", "fpr")
+
+plot(perf_f,
+     main="ROC Curves",
+     xlab="False Positive Rate",
+     ylab="True Positive Rate",
+     col="darkblue",  lwd = 3)
+abline(0,1, lty = 300, col = "red",  lwd = 3)
+
+```
+
+
+
+
+
+
+
+
+
+
